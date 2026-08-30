@@ -1,0 +1,24 @@
+name: Ansible CD
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install Ansible
+        run: |
+          python3 -m pip install --user ansible
+
+      - name: Install Ansible collections
+        run: |
+          ansible-galaxy collection install -r requirements.yml
+
+      - name: Deploy application
+        run: |
+          ansible-playbook playbooks/site.yml --ask-pass
