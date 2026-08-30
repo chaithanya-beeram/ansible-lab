@@ -1,0 +1,37 @@
+---
+
+- name: Install Nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+
+- name: Configure Nginx for application
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/sites-available/ansible-demo
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart Nginx
+
+- name: Enable application site
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/ansible-demo
+    dest: /etc/nginx/sites-enabled/ansible-demo
+    state: link
+    force: true
+  notify: Restart Nginx
+
+- name: Remove default Nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Restart Nginx
+
+- name: Ensure Nginx is running
+  ansible.builtin.shell: |
+    pgrep nginx || nginx
+  args:
+    executable: /bin/bash
+
