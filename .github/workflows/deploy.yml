@@ -22,4 +22,5 @@ jobs:
 
       - name: Deploy infrastructure
         run: |
-          .venv/bin/ansible-playbook playbooks/site.yml --ask-pass
+          .venv/bin/ansible-playbook playbooks/site.yml \
+            --private-key ~/.ssh/ansible_lab_cd
