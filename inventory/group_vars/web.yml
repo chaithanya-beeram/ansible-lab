@@ -1,0 +1,4 @@
+---
+app_name: ansible-demo
+app_port: 5000
+app_directory: /opt/myapp

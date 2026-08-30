@@ -1,0 +1,32 @@
+---
+- name: Deploy application infrastructure
+  hosts: all
+  become: true
+
+  roles:
+    - common
+
+- name: Configure database
+  hosts: database
+  become: true
+
+  roles:
+    - database
+
+- name: Configure web servers
+  hosts: web
+  serial: 1
+  become: true
+
+  roles:
+    - common
+    - application
+    - nginx
+
+- name: Configure load balancer
+  hosts: loadbalancer
+  become: true
+
+  roles:
+    - common
+    - loadbalancer

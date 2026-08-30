@@ -1,0 +1,6 @@
+---
+- name: Restart MySQL
+  ansible.builtin.shell:
+    cmd: |
+      mysqladmin shutdown
+      mysqld --user=mysql --daemonize

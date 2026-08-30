@@ -1,0 +1,84 @@
+---
+- name: Install Python and virtual environment packages
+  ansible.builtin.apt:
+    name:
+      - python3
+      - python3-venv
+    state: present
+    update_cache: true
+
+- name: Create application directory
+  ansible.builtin.file:
+    path: "{{ app_directory }}"
+    state: directory
+    owner: ansible
+    group: ansible
+    mode: "0755"
+
+- name: Create Python virtual environment
+  ansible.builtin.command:
+    cmd: python3 -m venv {{ app_directory }}/venv
+    creates: "{{ app_directory }}/venv/bin/python"
+
+- name: Copy application code
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../app/app.py"
+    dest: "{{ app_directory }}/app.py"
+    owner: ansible
+    group: ansible
+    mode: "0644"
+  notify: Restart application
+
+- name: Copy application requirements
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../app/requirements.txt"
+    dest: "{{ app_directory }}/requirements.txt"
+    owner: ansible
+    group: ansible
+    mode: "0644"
+  notify: Restart application
+
+- name: Install Python dependencies
+  ansible.builtin.pip:
+    requirements: "{{ app_directory }}/requirements.txt"
+    virtualenv: "{{ app_directory }}/venv"
+  notify: Restart application
+
+- name: Create application environment file
+  ansible.builtin.template:
+    src: app.env.j2
+    dest: "{{ app_directory }}/.env"
+    owner: ansible
+    group: ansible
+    mode: "0600"
+  notify: Restart application
+
+- name: Create application startup script
+  ansible.builtin.template:
+    src: start-app.sh.j2
+    dest: "{{ app_directory }}/start-app.sh"
+    owner: ansible
+    group: ansible
+    mode: "0755"
+  notify: Restart application
+
+- name: Check if application is running
+  ansible.builtin.shell:
+    cmd: |
+      if [ -f "{{ app_directory }}/gunicorn.pid" ] && \
+         kill -0 "$(cat "{{ app_directory }}/gunicorn.pid")" 2>/dev/null; then
+        exit 0
+      else
+        exit 1
+      fi
+  register: app_process
+  changed_when: false
+  failed_when: false
+
+- name: Start application
+  ansible.builtin.command:
+    cmd: "{{ app_directory }}/start-app.sh"
+  when: app_process.rc != 0
+
+- name: Verify application health
+  ansible.builtin.include_tasks: health.yml

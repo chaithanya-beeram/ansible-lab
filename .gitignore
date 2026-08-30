@@ -1,0 +1,17 @@
+# Ansible
+*.retry
+.vault_pass
+vault-password*
+*.vault
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Application
+*.log
+
+# macOS
+.DS_Store

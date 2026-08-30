@@ -1,0 +1,35 @@
+services:
+
+  web01:
+    build:
+      context: ./docker
+    container_name: ansible-web01
+    hostname: web01
+    ports:
+      - "2221:22"
+      - "5001:5000"
+
+  web02:
+    build:
+      context: ./docker
+    container_name: ansible-web02
+    hostname: web02
+    ports:
+      - "2222:22"
+
+  db01:
+    build:
+      context: ./docker
+    container_name: ansible-db01
+    hostname: db01
+    ports:
+      - "2223:22"
+
+  lb01:
+    build:
+      context: ./docker
+    container_name: ansible-lb01
+    hostname: lb01
+    ports:
+      - "2224:22"
+      - "8080:80"

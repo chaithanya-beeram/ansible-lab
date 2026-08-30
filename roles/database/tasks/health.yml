@@ -1,0 +1,10 @@
+---
+- name: Verify MySQL is accepting connections
+  ansible.builtin.shell:
+    cmd: mysqladmin ping
+  become: true
+  register: mysql_health
+  retries: 5
+  delay: 2
+  until: mysql_health.rc == 0
+  changed_when: false

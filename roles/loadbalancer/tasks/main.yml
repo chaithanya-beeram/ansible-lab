@@ -1,0 +1,50 @@
+---
+- name: Install Nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+  become: true
+
+- name: Configure Nginx
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/sites-available/ansible-demo
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify: Restart Nginx
+
+- name: Enable application site
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/ansible-demo
+    dest: /etc/nginx/sites-enabled/ansible-demo
+    state: link
+  become: true
+  notify: Restart Nginx
+
+- name: Remove default Nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  become: true
+  notify: Restart Nginx
+
+- name: Check Nginx configuration
+  ansible.builtin.command:
+    cmd: nginx -t
+  become: true
+  changed_when: false
+
+- name: Start Nginx
+  ansible.builtin.shell:
+    cmd: |
+      if ! pgrep -x nginx > /dev/null; then
+        nginx
+      fi
+  become: true
+  changed_when: false
+
+- name: Verify load balancer health
+  ansible.builtin.include_tasks: health.yml

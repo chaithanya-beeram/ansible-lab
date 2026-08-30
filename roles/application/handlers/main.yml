@@ -1,0 +1,12 @@
+---
+- name: Restart application
+  ansible.builtin.shell:
+    cmd: |
+      if [ -f "{{ app_directory }}/gunicorn.pid" ]; then
+        kill "$(cat "{{ app_directory }}/gunicorn.pid")" 2>/dev/null || true
+        sleep 2
+      fi
+
+      rm -f "{{ app_directory }}/gunicorn.pid"
+
+      "{{ app_directory }}/start-app.sh"
