@@ -1,8 +1,3 @@
-name: Ansible CD
-
-on:
-  workflow_dispatch:
-
 jobs:
   deploy:
     runs-on: self-hosted
@@ -13,12 +8,13 @@ jobs:
 
       - name: Install Ansible
         run: |
-          python3 -m pip install --user ansible
+          python3 -m venv .venv
+          .venv/bin/pip install ansible
 
       - name: Install Ansible collections
         run: |
-          ansible-galaxy collection install -r requirements.yml
+          .venv/bin/ansible-galaxy collection install -r requirements.yml
 
-      - name: Deploy application
+      - name: Deploy infrastructure
         run: |
-          ansible-playbook playbooks/site.yml --ask-pass
+          .venv/bin/ansible-playbook playbooks/site.yml --ask-pass
