@@ -1,15 +1,23 @@
 name: Ansible CD
 
 on:
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["Ansible CI"]
+    types:
+      - completed
+    branches:
+      - main
 
 jobs:
   deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: self-hosted
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Install Ansible
         run: |
@@ -24,3 +32,4 @@ jobs:
         run: |
           .venv/bin/ansible-playbook playbooks/site.yml \
             --private-key ~/.ssh/ansible_lab_cd
+
