@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "web01"
+    static_configs:
+      - targets: ["web01:5000"]
+
+  - job_name: "web02"
+    static_configs:
+      - targets: ["web02:5000"]
