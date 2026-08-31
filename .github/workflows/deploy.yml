@@ -33,3 +33,11 @@ jobs:
           .venv/bin/ansible-playbook playbooks/site.yml \
             --private-key ~/.ssh/ansible_lab_cd
 
+      - name: Verify application health
+        run: |
+          curl --fail --retry 5 --retry-delay 2 http://localhost:8080/health
+
+      - name: Verify tasks API
+        run: |
+          curl --fail --retry 5 --retry-delay 2 http://localhost:8080/api/tasks
+
