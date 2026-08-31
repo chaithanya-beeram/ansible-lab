@@ -1,8 +1,11 @@
 from flask import Flask, jsonify, request
 import os
 import mysql.connector
+from prometheus_flask_exporter import PrometheusMetrics
 
 app = Flask(__name__)
+
+metrics - PrometheusMetrics(app)
 
 DB_HOST = os.getenv("DB_HOST", "db01")
 DB_NAME = os.getenv("DB_NAME", "taskdb")
