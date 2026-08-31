@@ -3,6 +3,8 @@ services:
   web01:
     build:
       context: ./docker
+      args:
+        ANSIBLE_PUBLIC_KEY: ${ANSIBLE_PUBLIC_KEY}
     container_name: ansible-web01
     hostname: web01
     ports:
@@ -12,14 +14,19 @@ services:
   web02:
     build:
       context: ./docker
+      args:
+        ANSIBLE_PUBLIC_KEY: ${ANSIBLE_PUBLIC_KEY}
     container_name: ansible-web02
     hostname: web02
     ports:
       - "2222:22"
+      - "5002:5000"
 
   db01:
     build:
       context: ./docker
+      args:
+        ANSIBLE_PUBLIC_KEY: ${ANSIBLE_PUBLIC_KEY}
     container_name: ansible-db01
     hostname: db01
     ports:
@@ -28,6 +35,8 @@ services:
   lb01:
     build:
       context: ./docker
+      args:
+        ANSIBLE_PUBLIC_KEY: ${ANSIBLE_PUBLIC_KEY}
     container_name: ansible-lb01
     hostname: lb01
     ports:
@@ -49,3 +58,4 @@ services:
       - "3000:3000"
     depends_on:
       - prometheus
+
