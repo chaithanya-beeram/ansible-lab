@@ -1,0 +1,40 @@
+---
+- name: Recover failed web server
+  hosts: web01
+  become: true
+  become_user: ansible
+
+  tasks:
+    - name: Check application PID
+      ansible.builtin.shell: |
+        if [ -f "{{ app_directory }}/gunicorn.pid" ] && \
+           kill -0 "$(cat "{{ app_directory }}/gunicorn.pid")" 2>/dev/null; then
+          echo "running"
+        else
+          echo "stopped"
+        fi
+      register: app_status
+      changed_when: false
+
+    - name: Remove stale PID file
+      ansible.builtin.file:
+        path: "{{ app_directory }}/gunicorn.pid"
+        state: absent
+      when: app_status.stdout == "stopped"
+
+    - name: Start application
+      ansible.builtin.shell: |
+        setid nohup "{{ app_directory }}/start-app.sh" \
+          > "{{ app_directory }}/startup.log" 2>&1 < /dev/null &
+      when: app_status.stdout == "stopped"
+      changed_when: true
+
+    - name: Wait for application health
+      ansible.builtin.uri:
+        url: "http://localhost:{{ app_port }}/health"
+        method: GET
+        status_code: 200
+      register: health
+      retries: 15
+      delay: 2
+      until: health.status == 200
