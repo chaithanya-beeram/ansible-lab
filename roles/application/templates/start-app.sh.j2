@@ -1,8 +1,7 @@
 #!/bin/bash
-
 set -e
 
-cd "{{ app_directory }}"
+cd "{{ app_current_directory }}"
 
 set -a
 . "{{ app_directory }}/.env"
@@ -11,8 +10,6 @@ set +a
 exec "{{ app_directory }}/venv/bin/gunicorn" \
   --bind 0.0.0.0:{{ app_port }} \
   --workers 2 \
-  --daemon \
-  --pid "{{ app_directory }}/gunicorn.pid" \
   --access-logfile "{{ app_directory }}/access.log" \
   --error-logfile "{{ app_directory }}/error.log" \
   app:app

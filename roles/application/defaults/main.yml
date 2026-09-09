@@ -1,0 +1,7 @@
+---
+app_directory: /opt/myapp
+app_port: 5000
+
+app_release_id: "{{ lookup('env', 'GITHUB_SHA') | default('local', true) }}"
+app_release_directory: "{{ app_directory }}/releases/{{ app_release_id }}"
+app_current_directory: "{{ app_directory }}/current"

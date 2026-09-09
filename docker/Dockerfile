@@ -9,6 +9,7 @@ RUN apt-get update && \
         python3 \
         iproute2 \
         curl && \
+	prometheus-node-exporter && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /run/sshd

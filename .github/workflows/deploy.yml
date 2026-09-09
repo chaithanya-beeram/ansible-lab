@@ -3,10 +3,8 @@ name: Ansible CD
 on:
   workflow_run:
     workflows: ["Ansible CI"]
-    types:
-      - completed
-    branches:
-      - main
+    types: [completed]
+    branches: [main]
 
 jobs:
   deploy:
@@ -14,7 +12,7 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout repository
+      - name: Checkout deployed commit
         uses: actions/checkout@v5
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
@@ -31,13 +29,15 @@ jobs:
       - name: Deploy infrastructure
         run: |
           .venv/bin/ansible-playbook playbooks/site.yml \
-            --private-key ~/.ssh/ansible_lab_cd
+            --private-key ~/.ssh/ansible_lab_cd \
+            -e "app_release_id=${{ github.event.workflow_run.head_sha }}"
 
       - name: Verify application health
         run: |
-          curl --fail --retry 5 --retry-delay 2 http://localhost:8080/health
+          curl --fail --retry 5 --retry-delay 2 \
+            http://localhost:8080/health
 
       - name: Verify tasks API
         run: |
-          curl --fail --retry 5 --retry-delay 2 http://localhost:8080/api/tasks
-
+          curl --fail --retry 5 --retry-delay 2 \
+            http://localhost:8080/api/tasks

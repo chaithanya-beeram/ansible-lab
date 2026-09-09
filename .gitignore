@@ -7,8 +7,12 @@ vault-password*
 # Python
 __pycache__/
 *.py[cod]
+.env
+*.env
 .venv/
-venv/
+*.pyc
+.DS_Store
+
 
 # Application
 *.log

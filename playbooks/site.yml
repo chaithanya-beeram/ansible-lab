@@ -5,6 +5,7 @@
 
   roles:
     - common
+    - node_exporter
 
 - name: Configure database
   hosts: database
@@ -13,16 +14,34 @@
   roles:
     - database
 
-- name: Configure web servers
+- name: Deploy web servers
   hosts: web
-  serial: 1
   become: true
+  serial: 1
 
   roles:
-    - common
     - application
     - nginx
 
+  tasks:
+
+    - name: Verify application health
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:5000/health"
+        status_code: 200
+      register: health_check
+      retries: 10
+      delay: 3
+      until: health_check.status == 200
+
+    - name: Verify tasks API
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:5000/api/tasks"
+        status_code: 200
+      register: api_check
+      retries: 10
+      delay: 3
+      until: api_check.status == 200
 - name: Configure load balancer
   hosts: loadbalancer
   become: true

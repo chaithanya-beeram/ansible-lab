@@ -1,50 +1,48 @@
 ---
-- name: Install Nginx
+- name: Stop Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: stopped
+    enabled: false
+  become: true
+  failed_when: false
+
+- name: Remove Nginx
   ansible.builtin.apt:
     name: nginx
+    state: absent
+    purge: true
+  become: true
+
+- name: Install HAProxy
+  ansible.builtin.apt:
+    name: haproxy
     state: present
     update_cache: true
   become: true
 
-- name: Configure Nginx
+- name: Configure HAProxy
   ansible.builtin.template:
-    src: nginx.conf.j2
-    dest: /etc/nginx/sites-available/ansible-demo
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
     owner: root
     group: root
     mode: "0644"
   become: true
-  notify: Restart Nginx
+  notify: Restart HAProxy
 
-- name: Enable application site
-  ansible.builtin.file:
-    src: /etc/nginx/sites-available/ansible-demo
-    dest: /etc/nginx/sites-enabled/ansible-demo
-    state: link
-  become: true
-  notify: Restart Nginx
-
-- name: Remove default Nginx site
-  ansible.builtin.file:
-    path: /etc/nginx/sites-enabled/default
-    state: absent
-  become: true
-  notify: Restart Nginx
-
-- name: Check Nginx configuration
+- name: Validate HAProxy configuration
   ansible.builtin.command:
-    cmd: nginx -t
+    cmd: haproxy -c -f /etc/haproxy/haproxy.cfg
   become: true
   changed_when: false
 
-- name: Start Nginx
-  ansible.builtin.shell:
-    cmd: |
-      if ! pgrep -x nginx > /dev/null; then
-        nginx
-      fi
+- name: Ensure HAProxy is running
+  ansible.builtin.service:
+    name: haproxy
+    state: started
+    enabled: true
   become: true
-  changed_when: false
 
 - name: Verify load balancer health
   ansible.builtin.include_tasks: health.yml

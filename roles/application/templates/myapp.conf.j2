@@ -1,0 +1,15 @@
+[program:myapp]
+command={{ app_directory }}/start-app.sh
+directory={{ app_directory }}
+user=ansible
+autostart=true
+autorestart=true
+startsecs=5
+startretries=3
+stopsignal=TERM
+stopasgroup=true
+killasgroup=true
+
+stdout_logfile={{ app_directory }}/supervisor.log
+stderr_logfile={{ app_directory }}/supervisor-error.log
+

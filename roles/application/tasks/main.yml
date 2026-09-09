@@ -1,11 +1,14 @@
 ---
-- name: Install Python and virtual environment packages
+- name: Install application packages
   ansible.builtin.apt:
     name:
       - python3
+      - python3-pip
       - python3-venv
+      - supervisor
     state: present
     update_cache: true
+  become: true
 
 - name: Create application directory
   ansible.builtin.file:
@@ -14,35 +17,55 @@
     owner: ansible
     group: ansible
     mode: "0755"
+  become: true
+
+- name: Create releases directory
+  ansible.builtin.file:
+    path: "{{ app_directory }}/releases"
+    state: directory
+    owner: ansible
+    group: ansible
+    mode: "0755"
+  become: true
+
+- name: Create release directory
+  ansible.builtin.file:
+    path: "{{ app_release_directory }}"
+    state: directory
+    owner: ansible
+    group: ansible
+    mode: "0755"
+  become: true
 
 - name: Create Python virtual environment
   ansible.builtin.command:
-    cmd: python3 -m venv {{ app_directory }}/venv
+    cmd: "python3 -m venv {{ app_directory }}/venv"
     creates: "{{ app_directory }}/venv/bin/python"
+  become: true
 
 - name: Copy application code
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../app/app.py"
-    dest: "{{ app_directory }}/app.py"
+    dest: "{{ app_release_directory }}/app.py"
     owner: ansible
     group: ansible
     mode: "0644"
-  notify: Restart application
+  become: true
 
 - name: Copy application requirements
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../app/requirements.txt"
-    dest: "{{ app_directory }}/requirements.txt"
+    dest: "{{ app_release_directory }}/requirements.txt"
     owner: ansible
     group: ansible
     mode: "0644"
-  notify: Restart application
+  become: true
 
 - name: Install Python dependencies
   ansible.builtin.pip:
-    requirements: "{{ app_directory }}/requirements.txt"
+    requirements: "{{ app_release_directory }}/requirements.txt"
     virtualenv: "{{ app_directory }}/venv"
-  notify: Restart application
+  become: true
 
 - name: Create application environment file
   ansible.builtin.template:
@@ -51,7 +74,7 @@
     owner: ansible
     group: ansible
     mode: "0600"
-  notify: Restart application
+  become: true
 
 - name: Create application startup script
   ansible.builtin.template:
@@ -60,25 +83,112 @@
     owner: ansible
     group: ansible
     mode: "0755"
-  notify: Restart application
+  become: true
 
-- name: Check if application is running
-  ansible.builtin.shell:
-    cmd: |
-      if [ -f "{{ app_directory }}/gunicorn.pid" ] && \
-         kill -0 "$(cat "{{ app_directory }}/gunicorn.pid")" 2>/dev/null; then
-        exit 0
-      else
-        exit 1
-      fi
-  register: app_process
+- name: Ensure application logs are writable
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: touch
+    owner: ansible
+    group: ansible
+    mode: "0644"
+  loop:
+    - "{{ app_directory }}/access.log"
+    - "{{ app_directory }}/error.log"
+  become: true
+
+- name: Configure Supervisor for application
+  ansible.builtin.template:
+    src: myapp.conf.j2
+    dest: /etc/supervisor/conf.d/myapp.conf
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+
+- name: Ensure Supervisor is running
+  ansible.builtin.service:
+    name: supervisor
+    state: started
+    enabled: true
+  become: true
+
+- name: Save current release
+  ansible.builtin.shell: |
+    if [ -L "{{ app_current_directory }}" ]; then
+      readlink "{{ app_current_directory }}" > "{{ app_directory }}/previous_release"
+    else
+      rm -f "{{ app_directory }}/previous_release"
+    fi
+  args:
+    executable: /bin/bash
   changed_when: false
-  failed_when: false
+  become: true
 
-- name: Start application
-  ansible.builtin.command:
-    cmd: "{{ app_directory }}/start-app.sh"
-  when: app_process.rc != 0
+- name: Activate new release
+  ansible.builtin.file:
+    src: "{{ app_release_directory }}"
+    dest: "{{ app_current_directory }}"
+    state: link
+    force: true
+  become: true
+
+- name: Restart application and verify release
+  block:
+
+    - name: Reload Supervisor configuration
+      ansible.builtin.shell: |
+        supervisorctl reread
+        supervisorctl update
+      args:
+        executable: /bin/bash
+      become: true
+
+    - name: Restart application
+      ansible.builtin.command:
+        cmd: supervisorctl restart myapp
+      become: true
+
+    - name: Wait for application health
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ app_port }}/health"
+        status_code: 200
+      register: release_health
+      retries: 10
+      delay: 3
+      until: release_health.status == 200
+      become: true
+
+    - name: Verify tasks API
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ app_port }}/api/tasks"
+        status_code: 200
+      register: release_api
+      retries: 10
+      delay: 3
+      until: release_api.status == 200
+      become: true
+
+  rescue:
+
+    - name: Roll back to previous release
+      ansible.builtin.shell: |
+        if [ -f "{{ app_directory }}/previous_release" ]; then
+          PREVIOUS=$(cat "{{ app_directory }}/previous_release")
+          ln -sfn "$PREVIOUS" "{{ app_current_directory }}"
+        fi
+      args:
+        executable: /bin/bash
+      become: true
+
+    - name: Restart application after rollback
+      ansible.builtin.command:
+        cmd: supervisorctl restart myapp
+      become: true
+
+    - name: Fail deployment after rollback
+      ansible.builtin.fail:
+        msg: "Deployment failed health checks. Previous release restored."
 
 - name: Verify application health
   ansible.builtin.include_tasks: health.yml

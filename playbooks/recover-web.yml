@@ -24,7 +24,7 @@
 
     - name: Start application
       ansible.builtin.shell: |
-        setid nohup "{{ app_directory }}/start-app.sh" \
+        setsid nohup "{{ app_directory }}/start-app.sh" \
           > "{{ app_directory }}/startup.log" 2>&1 < /dev/null &
       when: app_status.stdout == "stopped"
       changed_when: true

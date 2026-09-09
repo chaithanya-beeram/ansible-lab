@@ -1,10 +1,10 @@
 ---
-- name: Verify Nginx is responding
+- name: Verify HAProxy is responding
   ansible.builtin.uri:
     url: "http://localhost/health"
     method: GET
     status_code: 200
-  register: nginx_health
+  register: haproxy_health
   retries: 5
   delay: 2
-  until: nginx_health.status == 200
+  until: haproxy_health.status == 200

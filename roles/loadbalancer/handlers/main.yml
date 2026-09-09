@@ -1,6 +1,6 @@
 ---
-- name: Restart Nginx
-  ansible.builtin.shell:
-    cmd: |
-      nginx -s reload
+- name: Restart HAProxy
+  ansible.builtin.service:
+    name: haproxy
+    state: restarted
   become: true
