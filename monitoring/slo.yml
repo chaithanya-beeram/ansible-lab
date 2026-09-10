@@ -1,0 +1,53 @@
+groups:
+  - name: application_slo
+    interval: 30s
+
+    rules:
+
+      # -----------------------------
+      # Availability
+      # -----------------------------
+
+      - record: app:request_success_ratio:5m
+        expr: |
+          1 -
+          (
+            sum(rate(flask_http_request_total{status=~"5.."}[5m]))
+            /
+            sum(rate(flask_http_request_total[5m]))
+          )
+
+      - record: app:request_error_ratio:5m
+        expr: |
+          (
+            sum(rate(flask_http_request_total{status=~"5.."}[5m]))
+            /
+            sum(rate(flask_http_request_total[5m]))
+          )
+
+
+      # -----------------------------
+      # Latency
+      # -----------------------------
+
+      - record: app:request_latency_p95:5m
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (
+              rate(app_request_latency_seconds_bucket[5m])
+            )
+          )
+
+
+      # -----------------------------
+      # SLO status
+      # -----------------------------
+
+      - record: app:availability_slo_breach
+        expr: |
+          app:request_success_ratio:5m < 0.999
+
+      - record: app:latency_slo_breach
+        expr: |
+          app:request_latency_p95:5m > 0.5

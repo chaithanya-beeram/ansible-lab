@@ -1,14 +1,13 @@
 global
     log stdout format raw local0
     maxconn 2048
+    stats socket /run/haproxy/admin.sock mode 660 level admin
 
 defaults
     mode http
     log global
-
     option httplog
     option dontlognull
-
     timeout connect 5s
     timeout client 30s
     timeout server 30s
@@ -19,10 +18,9 @@ frontend http_front
 
 backend web_backend
     balance roundrobin
-
     option httpchk GET /health
     http-check expect status 200
 
 {% for host in groups['web'] %}
-    server {{ host }} {{ host }}:5000 check
+    server {{ host }} {{ host }}:80 check
 {% endfor %}

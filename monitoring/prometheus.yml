@@ -3,6 +3,7 @@ global:
 
 rule_files:
   - /etc/prometheus/alerts.yml
+  - /etc/prometheus/slo.yml
 
 alerting:
   alertmanagers:
@@ -11,6 +12,7 @@ alerting:
             - "alertmanager:9093"
 
 scrape_configs:
+
   - job_name: "web"
     metrics_path: /metrics
     static_configs:
@@ -25,4 +27,3 @@ scrape_configs:
           - "web02:9100"
           - "db01:9100"
           - "lb01:9100"
-
